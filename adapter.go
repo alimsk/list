@@ -1,12 +1,12 @@
 package list
 
 type Adapter interface {
-	// number of items, usually just return len(items)
+	// return the number of items, usually just return len(items)
 	Count() int
 	// separator
 	Sep() string
-	// item view, pos is position of the item, focus is current focused item.
+	// item view, pos is position of the item, focus is currently focused item.
 	//
-	// to check whether this item is focused or not, use focus == pos
+	// tip: to check whether this item is focused or not, use focus == pos
 	View(pos, focus int) string
 }

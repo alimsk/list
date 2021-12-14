@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"strconv"
 
 	"github.com/alimsk/list"
 	tea "github.com/charmbracelet/bubbletea"
@@ -21,7 +22,8 @@ func (m model) View() string {
 	if m.exitMessage != "" {
 		return m.exitMessage
 	}
-	return m.l.View()
+	return strconv.Itoa(m.l.Adapter.Count()) + " items\n\n" +
+		m.l.View()
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -63,6 +65,15 @@ func RandomItems(n int) *list.SimpleAdapter {
 	return a
 }
 
+func RandomNumber(n int) *list.SimpleAdapter {
+	a := &list.SimpleAdapter{}
+	a.Items = make([]list.SimpleItem, n)
+	for i := range a.Items {
+		a.Items[i] = list.SimpleItem{strconv.Itoa(i), "an item"}
+	}
+	return a
+}
+
 type SelectMsg int
 
 func onSelect(i int) tea.Cmd {
@@ -72,7 +83,7 @@ func onSelect(i int) tea.Cmd {
 }
 
 func main() {
-	l, _ := list.New(RandomItems(70))
+	l, _ := list.New(RandomNumber(26))
 	l.OnSelect = onSelect
 	// enable focus, so you can interact with it
 	l.Focus()

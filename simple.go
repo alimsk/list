@@ -4,6 +4,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// TODO: implement filter
+
 var (
 	normalTitle = lipgloss.NewStyle().
 			Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
