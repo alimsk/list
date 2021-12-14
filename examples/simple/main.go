@@ -10,7 +10,7 @@ import (
 )
 
 type model struct {
-	l           list.Model
+	list        list.Model
 	exitMessage string
 }
 
@@ -22,8 +22,8 @@ func (m model) View() string {
 	if m.exitMessage != "" {
 		return m.exitMessage
 	}
-	return strconv.Itoa(m.l.Adapter.Count()) + " items\n\n" +
-		m.l.View()
+	return strconv.Itoa(m.list.Adapter.Count()) + " items\n\n" +
+		m.list.View()
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -34,13 +34,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			return m, tea.Quit
 		}
 	case SelectMsg:
-		adapter := m.l.Adapter.(*list.SimpleAdapter)
+		adapter := m.list.Adapter.(*list.SimpleAdapter)
 		m.exitMessage = fmt.Sprintln("You selected", adapter.Items[msg].Title)
 		return m, tea.Quit
 	}
 
 	var cmd tea.Cmd
-	m.l, cmd = m.l.Update(msg)
+	m.list, cmd = m.list.Update(msg)
 	return m, cmd
 }
 
@@ -65,7 +65,7 @@ func RandomItems(n int) *list.SimpleAdapter {
 	return a
 }
 
-func RandomNumber(n int) *list.SimpleAdapter {
+func NumberList(n int) *list.SimpleAdapter {
 	a := &list.SimpleAdapter{}
 	a.Items = make([]list.SimpleItem, n)
 	for i := range a.Items {
@@ -83,11 +83,11 @@ func onSelect(i int) tea.Cmd {
 }
 
 func main() {
-	l, _ := list.New(RandomNumber(26))
+	l, _ := list.New(RandomItems(26))
 	l.OnSelect = onSelect
 	// enable focus, so you can interact with it
 	l.Focus()
-	if err := tea.NewProgram(model{l: l}, tea.WithMouseCellMotion()).Start(); err != nil {
+	if err := tea.NewProgram(model{list: l}, tea.WithMouseCellMotion()).Start(); err != nil {
 		panic(err)
 	}
 }
