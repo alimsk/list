@@ -11,11 +11,11 @@ func openBrowser(url string) (err error) {
 	switch runtime.GOOS {
 	case "linux", "android":
 		// use termux in android
-		err = exec.Command("xdg-open", url).Start()
+		err = exec.Command("xdg-open", url).Run()
 	case "windows":
-		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
+		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Run()
 	case "darwin":
-		err = exec.Command("open", url).Start()
+		err = exec.Command("open", url).Run()
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}

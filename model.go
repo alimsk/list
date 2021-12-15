@@ -1,11 +1,16 @@
 package list
 
 import (
-	"fmt"
 	"strings"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+)
+
+const (
+	_ = -iota
+	FocusDisabled
+	FocusViewMode
 )
 
 type Model struct {
@@ -13,33 +18,35 @@ type Model struct {
 	InfiniteScroll   bool
 	ScrollBarStyle   lipgloss.Style
 	// must be non-nil
-	Adapter Adapter
+	Adapter  Adapter
+	ViewMode bool
 
 	focus            int
 	visibleItemStart int
 	hasFocus         bool
 }
 
-func New(adapter Adapter) (Model, error) {
-	if adapter == nil {
-		return Model{}, fmt.Errorf("adapter is nil")
-	}
+func New(adapter Adapter) Model {
 	return Model{
 		VisibleItemCount: 7,
 		Adapter:          adapter,
 		ScrollBarStyle: lipgloss.NewStyle().
 			Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
 			SetString("\u2502"), // '│', U+2502, BOX DRAWINGS LIGHT VERTICAL
-	}, nil
+	}
 }
 
 func (m Model) View() string {
 	var bob strings.Builder
 
 	for i := m.visibleItemStart; i < m.Adapter.Count() && i < m.visibleItemStart+m.VisibleItemCount; i++ {
-		focus := -1
-		if m.hasFocus {
+		var focus int
+		if m.ViewMode {
+			focus = FocusViewMode
+		} else if m.hasFocus {
 			focus = m.focus
+		} else {
+			focus = FocusDisabled
 		}
 		bob.WriteString(m.Adapter.View(i, focus) + m.Adapter.Sep())
 	}
@@ -96,19 +103,35 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "up":
-			m.updateFocus(-1)
+			if m.ViewMode {
+				m.updateView(-1)
+			} else {
+				m.updateFocus(-1)
+			}
 		case "down", "tab", "shift+tab":
-			m.updateFocus(+1)
+			if m.ViewMode {
+				m.updateView(+1)
+			} else {
+				m.updateFocus(+1)
+			}
 		case "enter":
-			if m.Adapter.Count() > 0 {
+			if m.Adapter.Count() > 0 && !m.ViewMode {
 				m.adjustView()
 				cmd := m.Adapter.Select(m.focus)
 				return m, cmd
 			}
 		case "home":
-			m.SetItemFocus(0)
+			if m.ViewMode {
+				m.SetViewPosition(0)
+			} else {
+				m.SetItemFocus(0)
+			}
 		case "end":
-			m.SetItemFocus(m.Adapter.Count() - 1)
+			if m.ViewMode {
+				m.SetViewPosition(m.Adapter.Count())
+			} else {
+				m.SetItemFocus(m.Adapter.Count())
+			}
 		case "pgup":
 			m.visibleItemStart = max(0, m.visibleItemStart-m.VisibleItemCount)
 		case "pgdown":

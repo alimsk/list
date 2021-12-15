@@ -67,12 +67,12 @@ func (s *SimpleAdapter) View(pos, focus int) string {
 		if focus == pos {
 			// focused
 			renderTitle, renderDesc = selectedTitle.Render, selectedDesc.Render
-		} else if focus >= 0 {
-			// blurred
-			renderTitle, renderDesc = normalTitle.Render, normalDesc.Render
-		} else {
+		} else if focus == FocusDisabled {
 			// disabled
 			renderTitle, renderDesc = dimmedTitle.Render, dimmedDesc.Render
+		} else {
+			// blurred
+			renderTitle, renderDesc = normalTitle.Render, normalDesc.Render
 		}
 	} else {
 		if focus == pos {

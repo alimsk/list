@@ -74,7 +74,7 @@ var items = CustomAdapter{
 }
 
 func main() {
-	l, _ := list.New(items)
+	l := list.New(items)
 	l.Focus()
 	if err := tea.NewProgram(model{list: l}).Start(); err != nil {
 		panic(err)

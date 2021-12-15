@@ -61,21 +61,9 @@ var random = []list.SimpleItem{
 func RandomItems(n int) *list.SimpleAdapter {
 	a := &list.SimpleAdapter{
 		OnSelect: onSelect,
-		Items:    make([]list.SimpleItem, n),
-	}
+		Items:    make([]list.SimpleItem, n)}
 	for i := range a.Items {
 		a.Items[i] = random[rand.Intn(len(random))]
-	}
-	return a
-}
-
-func NumberList(n int) *list.SimpleAdapter {
-	a := &list.SimpleAdapter{
-		OnSelect: onSelect,
-		Items:    make([]list.SimpleItem, n),
-	}
-	for i := range a.Items {
-		a.Items[i] = list.SimpleItem{strconv.Itoa(i), "an item", true}
 	}
 	return a
 }
@@ -89,7 +77,7 @@ func onSelect(i int) tea.Cmd {
 }
 
 func main() {
-	l, _ := list.New(RandomItems(26))
+	l := list.New(RandomItems(26))
 	// enable focus, so you can interact with it
 	l.Focus()
 	if err := tea.NewProgram(model{list: l}, tea.WithMouseCellMotion()).Start(); err != nil {
