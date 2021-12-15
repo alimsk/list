@@ -12,13 +12,12 @@ type Model struct {
 	VisibleItemCount int
 	InfiniteScroll   bool
 	ScrollBarStyle   lipgloss.Style
-	Adapter          Adapter
+	// must be non-nil
+	Adapter Adapter
 
 	focus            int
 	visibleItemStart int
 	hasFocus         bool
-
-	OnSelect func(int) tea.Cmd
 }
 
 func New(adapter Adapter) (Model, error) {
@@ -101,9 +100,10 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		case "down", "tab", "shift+tab":
 			m.updateFocus(+1)
 		case "enter":
-			if m.OnSelect != nil && m.Adapter.Count() > 0 {
+			if m.Adapter.Count() > 0 {
 				m.adjustView()
-				return m, m.OnSelect(m.focus)
+				cmd := m.Adapter.Select(m.focus)
+				return m, cmd
 			}
 		case "home":
 			m.SetItemFocus(0)

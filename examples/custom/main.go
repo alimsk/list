@@ -17,22 +17,9 @@ func (m model) View() string {
 	return m.list.View()
 }
 
-type SelectMsg int
-
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "q", "ctrl+c", "esc":
-			return m, tea.Quit
-		}
-	case SelectMsg:
-		if items[msg].Name == "Rick" {
-			return m, func() tea.Msg {
-				openBrowser("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
-				return nil
-			}
-		}
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "q" {
+		return m, tea.Quit
 	}
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)
@@ -68,6 +55,10 @@ var items = CustomAdapter{
 		Name:       "Rick",
 		Status:     Status{"never gonna give you up", "🎧"},
 		Unread:     12,
+		OnSelect: func() tea.Msg {
+			openBrowser("https://www.youtube.com/watch?v=dQw4w9WgXcQ")
+			return nil
+		},
 	},
 	{
 		ProfilePic: '😁',
@@ -85,11 +76,6 @@ var items = CustomAdapter{
 func main() {
 	l, _ := list.New(items)
 	l.Focus()
-	l.OnSelect = func(i int) tea.Cmd {
-		return func() tea.Msg {
-			return SelectMsg(i)
-		}
-	}
 	if err := tea.NewProgram(model{list: l}).Start(); err != nil {
 		panic(err)
 	}

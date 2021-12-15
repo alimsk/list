@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strconv"
 
+	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
 )
 
@@ -40,6 +41,8 @@ type CustomItem struct {
 	Status     Status
 	Desc       string
 	Unread     int
+
+	OnSelect tea.Cmd
 }
 
 type CustomAdapter []CustomItem
@@ -48,6 +51,7 @@ func (c CustomAdapter) Count() int {
 	return len(c)
 }
 
+// separator
 func (c CustomAdapter) Sep() string {
 	return "\n\n"
 }
@@ -67,15 +71,18 @@ func (c CustomAdapter) View(pos, focus int) string {
 		style = normalStyle
 	}
 
-	var topRight string = "╮"
+	var topRight, btmRight string = "╮", "╯"
 	if item.Unread > 0 {
 		topRight = unreadStyle(strconv.Itoa(item.Unread))
 	}
-	var btmRight string = "╯"
 	if item.Status.Icon != "" {
 		btmRight = item.Status.Icon
 	}
 
 	return fmt.Sprintf(style(format), topRight, item.ProfilePic,
 		item.Name, btmRight, normalTextStyle(item.Status.Text))
+}
+
+func (c CustomAdapter) Select(pos int) tea.Cmd {
+	return c[pos].OnSelect
 }

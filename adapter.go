@@ -1,5 +1,7 @@
 package list
 
+import tea "github.com/charmbracelet/bubbletea"
+
 type Adapter interface {
 	// return the number of items, usually just return len(items)
 	Count() int
@@ -9,4 +11,8 @@ type Adapter interface {
 	//
 	// tip: to check whether this item is focused or not, use focus == pos
 	View(pos, focus int) string
+	// called when item selected, for example when user press enter.
+	//
+	// pos is the index of selected item.
+	Select(pos int) tea.Cmd
 }

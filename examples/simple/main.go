@@ -45,20 +45,24 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 var random = []list.SimpleItem{
-	{"Pocky", "Expesive"},
-	{"Ginger", "Exquisite"},
-	{"Plantains", "Questionable"},
-	{"Honey Dew", "Delectable"},
-	{"Pineapple", "Kind of spicy"},
-	{"Snow Peas", "Bold flavour"},
-	{"Party Gherkin", "My favorite"},
-	{"Bananas", "Looks fresh"},
+	// Title, Desc, Selectable
+	{"Unselectable", "Pressing enter will do nothing", false},
+	{"Pocky", "Expesive", true},
+	{"Ginger", "Exquisite", true},
+	{"Plantains", "Questionable", true},
+	{"Honey Dew", "Delectable", true},
+	{"Pineapple", "Kind of spicy", true},
+	{"Snow Peas", "Bold flavour", true},
+	{"Party Gherkin", "My favorite", true},
+	{"Bananas", "Looks fresh", true},
 }
 
 // generate random items
 func RandomItems(n int) *list.SimpleAdapter {
-	a := &list.SimpleAdapter{}
-	a.Items = make([]list.SimpleItem, n)
+	a := &list.SimpleAdapter{
+		OnSelect: onSelect,
+		Items:    make([]list.SimpleItem, n),
+	}
 	for i := range a.Items {
 		a.Items[i] = random[rand.Intn(len(random))]
 	}
@@ -66,10 +70,12 @@ func RandomItems(n int) *list.SimpleAdapter {
 }
 
 func NumberList(n int) *list.SimpleAdapter {
-	a := &list.SimpleAdapter{}
-	a.Items = make([]list.SimpleItem, n)
+	a := &list.SimpleAdapter{
+		OnSelect: onSelect,
+		Items:    make([]list.SimpleItem, n),
+	}
 	for i := range a.Items {
-		a.Items[i] = list.SimpleItem{strconv.Itoa(i), "an item"}
+		a.Items[i] = list.SimpleItem{strconv.Itoa(i), "an item", true}
 	}
 	return a
 }
@@ -84,7 +90,6 @@ func onSelect(i int) tea.Cmd {
 
 func main() {
 	l, _ := list.New(RandomItems(26))
-	l.OnSelect = onSelect
 	// enable focus, so you can interact with it
 	l.Focus()
 	if err := tea.NewProgram(model{list: l}, tea.WithMouseCellMotion()).Start(); err != nil {

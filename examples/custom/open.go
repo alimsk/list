@@ -2,17 +2,15 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"os/exec"
 	"runtime"
 )
 
 // source: https://gist.github.com/hyg/9c4afcd91fe24316cbf0
-func openBrowser(url string) {
-	var err error
-
+func openBrowser(url string) (err error) {
 	switch runtime.GOOS {
-	case "linux":
+	case "linux", "android":
+		// use termux in android
 		err = exec.Command("xdg-open", url).Start()
 	case "windows":
 		err = exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()
@@ -21,8 +19,6 @@ func openBrowser(url string) {
 	default:
 		err = fmt.Errorf("unsupported platform")
 	}
-	if err != nil {
-		log.Fatal(err)
-	}
 
+	return
 }
