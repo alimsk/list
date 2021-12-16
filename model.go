@@ -56,37 +56,38 @@ func (m Model) View() string {
 	s := bob.String()
 	s = s[:max(0, len(s)-len(m.Adapter.Sep()))] // remove trailing separator
 
+	/* draw scrollbar */
+	bob.Reset()
+
+	height := lipgloss.Height(s)
+	var scrollbarpos int
 	if m.Adapter.Len() > m.VisibleItemCount {
-		/* draw scrollbar */
-		bob.Reset()
-
-		height := lipgloss.Height(s)
-		scrollbarpos := int((float32(m.visibleItemStart) / float32(m.Adapter.Len()-m.VisibleItemCount)) *
+		scrollbarpos = int((float32(m.visibleItemStart) / float32(m.Adapter.Len()-m.VisibleItemCount)) *
 			float32(height-1)) // -1 because it start from 0 not 1
-
-		// first line
-		if scrollbarpos == 0 {
-			bob.WriteString(m.ScrollBarStyle.String())
-		} else {
-			bob.WriteByte(' ')
-		}
-		var lineno int
-		for _, r := range s {
-			bob.WriteRune(r)
-			if r == '\n' {
-				lineno++
-				if lineno == scrollbarpos {
-					bob.WriteString(m.ScrollBarStyle.String())
-				} else {
-					bob.WriteByte(' ')
-				}
-			}
-		}
-
-		return bob.String()
+	} else {
+		scrollbarpos = -1
 	}
 
-	return s
+	// first line
+	if scrollbarpos == 0 {
+		bob.WriteString(m.ScrollBarStyle.String())
+	} else {
+		bob.WriteByte(' ')
+	}
+	var lineno int
+	for _, r := range s {
+		bob.WriteRune(r)
+		if r == '\n' {
+			lineno++
+			if lineno == scrollbarpos {
+				bob.WriteString(m.ScrollBarStyle.String())
+			} else {
+				bob.WriteByte(' ')
+			}
+		}
+	}
+
+	return bob.String()
 }
 
 func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
