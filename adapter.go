@@ -4,7 +4,7 @@ import tea "github.com/charmbracelet/bubbletea"
 
 type Adapter interface {
 	// return the number of items, usually just return len(items)
-	Count() int
+	Len() int
 	// separator
 	Sep() string
 	// item view, pos is position of the item, focus is currently focused item.

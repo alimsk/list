@@ -3,15 +3,16 @@ package main
 import (
 	"fmt"
 	"math/rand"
-	"strconv"
+	"unicode"
 
 	"github.com/alimsk/list"
 	tea "github.com/charmbracelet/bubbletea"
 )
 
 type model struct {
-	list        list.Model
-	exitMessage string
+	list          list.Model
+	exitMessage   string
+	filterPattern string
 }
 
 func (model) Init() tea.Cmd {
@@ -22,7 +23,7 @@ func (m model) View() string {
 	if len(m.exitMessage) > 0 {
 		return m.exitMessage
 	}
-	return strconv.Itoa(m.list.Adapter.Len()) + " items\n\n" +
+	return "Search: " + m.filterPattern + "\n\n" +
 		m.list.View()
 }
 
@@ -30,12 +31,23 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	switch msg := msg.(type) {
 	case tea.KeyMsg:
 		switch msg.String() {
-		case "q", "esc", "ctrl+c":
+		case "esc", "ctrl+c":
 			return m, tea.Quit
+		case "backspace":
+			if len(m.filterPattern) > 0 {
+				m.filterPattern = m.filterPattern[:len(m.filterPattern)-1]
+				m.list.Adapter.(*list.SimpleAdapter).Filter(m.filterPattern)
+			}
+		default:
+			if len(msg.Runes) > 0 {
+				if r := msg.Runes[0]; unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ' {
+					m.filterPattern += string(r)
+					m.list.Adapter.(*list.SimpleAdapter).Filter(m.filterPattern)
+				}
+			}
 		}
 	case SelectMsg:
-		adapter := m.list.Adapter.(*list.SimpleAdapter)
-		m.exitMessage = fmt.Sprintln("You selected", adapter.ItemAt(int(msg)).Title)
+		m.exitMessage = fmt.Sprintln("You selected", m.list.Adapter.(*list.SimpleAdapter).ItemAt(int(msg)).Title)
 		return m, tea.Quit
 	}
 
@@ -57,6 +69,14 @@ var random = list.SimpleItemList{
 	{"Bananas", "Looks fresh", true},
 }
 
+type SelectMsg int
+
+func onSelect(pos int) tea.Cmd {
+	return func() tea.Msg {
+		return SelectMsg(pos)
+	}
+}
+
 // generate random items
 func RandomItems(n int) *list.SimpleAdapter {
 	a := list.NewSimpleAdapter(make(list.SimpleItemList, n))
@@ -67,16 +87,9 @@ func RandomItems(n int) *list.SimpleAdapter {
 	return a
 }
 
-type SelectMsg int
-
-func onSelect(i int) tea.Cmd {
-	return func() tea.Msg {
-		return SelectMsg(i)
-	}
-}
-
 func main() {
 	l := list.New(RandomItems(26))
+	// l.ViewMode = true
 	// enable focus, so you can interact with it
 	l.Focus()
 	if err := tea.NewProgram(model{list: l}, tea.WithMouseCellMotion()).Start(); err != nil {

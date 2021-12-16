@@ -7,6 +7,8 @@ import (
 	"github.com/charmbracelet/lipgloss"
 )
 
+// TODO: when no item is present, display something like "there's nothing here"
+
 const (
 	_ = -iota
 	FocusDisabled
@@ -17,7 +19,7 @@ type Model struct {
 	VisibleItemCount int
 	InfiniteScroll   bool
 	ScrollBarStyle   lipgloss.Style
-	// must be non-nil
+	// make sure to call Update after setting the Adapter, otherwise index out of range may occur
 	Adapter  Adapter
 	ViewMode bool
 
@@ -39,7 +41,7 @@ func New(adapter Adapter) Model {
 func (m Model) View() string {
 	var bob strings.Builder
 
-	for i := m.visibleItemStart; i < m.Adapter.Count() && i < m.visibleItemStart+m.VisibleItemCount; i++ {
+	for i := m.visibleItemStart; i < m.Adapter.Len() && i < m.visibleItemStart+m.VisibleItemCount; i++ {
 		var focus int
 		if m.ViewMode {
 			focus = FocusViewMode
@@ -54,12 +56,12 @@ func (m Model) View() string {
 	s := bob.String()
 	s = s[:max(0, len(s)-len(m.Adapter.Sep()))] // remove trailing separator
 
-	if m.Adapter.Count() > m.VisibleItemCount {
+	if m.Adapter.Len() > m.VisibleItemCount {
 		/* draw scrollbar */
 		bob.Reset()
 
 		height := lipgloss.Height(s)
-		scrollbarpos := int((float32(m.visibleItemStart) / float32(m.Adapter.Count()-m.VisibleItemCount)) *
+		scrollbarpos := int((float32(m.visibleItemStart) / float32(m.Adapter.Len()-m.VisibleItemCount)) *
 			float32(height-1)) // -1 because it start from 0 not 1
 
 		// first line
@@ -92,11 +94,11 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 		return m, nil
 	}
 
-	if m.Adapter.Count() <= m.visibleItemStart+m.VisibleItemCount {
-		m.visibleItemStart = max(0, m.Adapter.Count()-m.VisibleItemCount)
+	if m.Adapter.Len() <= m.visibleItemStart+m.VisibleItemCount {
+		m.visibleItemStart = max(0, m.Adapter.Len()-m.VisibleItemCount)
 	}
-	if m.Adapter.Count() <= m.focus {
-		m.focus = max(0, m.Adapter.Count()-1)
+	if m.Adapter.Len() <= m.focus {
+		m.focus = max(0, m.Adapter.Len()-1)
 	}
 
 	switch msg := msg.(type) {
@@ -115,7 +117,7 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 				m.updateFocus(+1)
 			}
 		case "enter":
-			if m.Adapter.Count() > 0 && !m.ViewMode {
+			if m.Adapter.Len() > 0 && !m.ViewMode {
 				m.adjustView()
 				cmd := m.Adapter.Select(m.focus)
 				return m, cmd
@@ -128,14 +130,14 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			}
 		case "end":
 			if m.ViewMode {
-				m.SetViewPosition(m.Adapter.Count())
+				m.SetViewPosition(m.Adapter.Len())
 			} else {
-				m.SetItemFocus(m.Adapter.Count())
+				m.SetItemFocus(m.Adapter.Len())
 			}
 		case "pgup":
 			m.visibleItemStart = max(0, m.visibleItemStart-m.VisibleItemCount)
 		case "pgdown":
-			m.visibleItemStart = min(max(0, m.Adapter.Count()-m.VisibleItemCount), m.visibleItemStart+m.VisibleItemCount)
+			m.visibleItemStart = min(max(0, m.Adapter.Len()-m.VisibleItemCount), m.visibleItemStart+m.VisibleItemCount)
 		}
 	case tea.MouseMsg:
 		switch msg.Type {
@@ -174,12 +176,12 @@ func (m *Model) Blur() {
 }
 
 func (m *Model) SetItemFocus(i int) {
-	m.focus = max(0, min(i, m.Adapter.Count()-1))
+	m.focus = max(0, min(i, m.Adapter.Len()-1))
 	m.adjustView()
 }
 
 func (m *Model) SetViewPosition(i int) {
-	m.visibleItemStart = max(0, min(i, m.Adapter.Count()-m.VisibleItemCount))
+	m.visibleItemStart = max(0, min(i, m.Adapter.Len()-m.VisibleItemCount))
 }
 
 func (m *Model) VisibleItemStart() int {
@@ -188,7 +190,7 @@ func (m *Model) VisibleItemStart() int {
 
 // returns current item focus, returns -1 if Adapter.Count() == 0
 func (m *Model) ItemFocus() int {
-	if m.Adapter.Count() > 0 {
+	if m.Adapter.Len() > 0 {
 		return m.focus
 	}
 	return -1
@@ -203,12 +205,12 @@ func (m *Model) adjustView() {
 }
 
 func (m *Model) shiftItemFocus(i int) {
-	m.focus = mod(m.focus+i, max(1, m.Adapter.Count()))
+	m.focus = mod(m.focus+i, max(1, m.Adapter.Len()))
 	m.adjustView()
 }
 
 func (m *Model) shiftViewPosition(i int) {
-	m.visibleItemStart = mod(m.visibleItemStart+i, max(1, m.Adapter.Count()-m.VisibleItemCount+1))
+	m.visibleItemStart = mod(m.visibleItemStart+i, max(1, m.Adapter.Len()-m.VisibleItemCount+1))
 }
 
 func mod(a, b int) int {

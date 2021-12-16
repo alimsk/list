@@ -18,7 +18,7 @@ func (m model) View() string {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "q" {
+	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "q" || key.String() == "esc" || key.String() == "ctrl+c" {
 		return m, tea.Quit
 	}
 	var cmd tea.Cmd

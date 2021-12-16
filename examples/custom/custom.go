@@ -47,7 +47,7 @@ type CustomItem struct {
 
 type CustomAdapter []CustomItem
 
-func (c CustomAdapter) Count() int {
+func (c CustomAdapter) Len() int {
 	return len(c)
 }
 
@@ -71,11 +71,11 @@ func (c CustomAdapter) View(pos, focus int) string {
 		style = normalStyle
 	}
 
-	var topRight, btmRight string = "╮", "╯"
+	var topRight, btmRight = "╮", "╯"
 	if item.Unread > 0 {
 		topRight = unreadStyle(strconv.Itoa(item.Unread))
 	}
-	if item.Status.Icon != "" {
+	if len(item.Status.Icon) > 0 {
 		btmRight = item.Status.Icon
 	}
 

@@ -2,41 +2,7 @@ package list
 
 import (
 	tea "github.com/charmbracelet/bubbletea"
-	"github.com/charmbracelet/lipgloss"
-)
-
-// TODO: implement filter
-
-var (
-	normalTitle = lipgloss.NewStyle().
-			Foreground(lipgloss.AdaptiveColor{Light: "#1a1a1a", Dark: "#dddddd"}).
-			Padding(0, 0, 0, 2)
-	normalDesc = normalTitle.Copy().
-			Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"})
-
-	selectedTitle = lipgloss.NewStyle().
-			Border(lipgloss.NormalBorder(), false, false, false, true).
-			BorderForeground(lipgloss.AdaptiveColor{Light: "#F793FF", Dark: "#AD58B4"}).
-			Foreground(lipgloss.AdaptiveColor{Light: "#EE6FF8", Dark: "#EE6FF8"}).
-			Padding(0, 0, 0, 1)
-	selectedDesc = selectedTitle.Copy().
-			Foreground(lipgloss.AdaptiveColor{Light: "#F793FF", Dark: "#AD58B4"})
-
-	dimmedTitle = lipgloss.NewStyle().
-			Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
-			Padding(0, 0, 0, 2)
-	dimmedDesc = dimmedTitle.Copy().
-			Foreground(lipgloss.AdaptiveColor{Light: "#C2B8C2", Dark: "#4D4D4D"})
-
-	selectedDimmedTitle = lipgloss.NewStyle().
-				Border(lipgloss.NormalBorder(), false, false, false, true).
-				BorderForeground(lipgloss.AdaptiveColor{Light: "#C2B8C2", Dark: "#4D4D4D"}).
-				Foreground(lipgloss.AdaptiveColor{Light: "#A49FA5", Dark: "#777777"}).
-				Padding(0, 0, 0, 1)
-	selectedDimmedDesc = selectedDimmedTitle.Copy().
-				Foreground(lipgloss.AdaptiveColor{Light: "#C2B8C2", Dark: "#4D4D4D"})
-
-	filterMatch = lipgloss.NewStyle().Underline(true)
+	"github.com/sahilm/fuzzy"
 )
 
 type SimpleItem struct {
@@ -44,15 +10,45 @@ type SimpleItem struct {
 	Selectable  bool
 }
 
+type SimpleItemList []SimpleItem
+
+var _ fuzzy.Source = (SimpleItemList)(nil)
+
+func (s SimpleItemList) Len() int {
+	return len(s)
+}
+
+func (s SimpleItemList) String(i int) string {
+	return s[i].Title
+}
+
 type SimpleAdapter struct {
-	Items    []SimpleItem
+	items             SimpleItemList
+	filterResult      []fuzzy.Match
+	lastFilterPattern string
+
+	StyleNormal, StyleDimmed *SimpleAdapterStyle
+
 	OnSelect func(pos int) tea.Cmd
+}
+
+func NewSimpleAdapter(items SimpleItemList) *SimpleAdapter {
+	styleNormal, styleDimmed := SimpleDefaultStyle()
+	return &SimpleAdapter{
+		items: items,
+
+		StyleNormal: styleNormal,
+		StyleDimmed: styleDimmed,
+	}
 }
 
 var _ Adapter = (*SimpleAdapter)(nil)
 
-func (s *SimpleAdapter) Count() int {
-	return len(s.Items)
+func (s *SimpleAdapter) Len() int {
+	if s.filterResult == nil {
+		return len(s.items)
+	}
+	return len(s.filterResult)
 }
 
 func (s *SimpleAdapter) Sep() string {
@@ -60,51 +56,129 @@ func (s *SimpleAdapter) Sep() string {
 }
 
 func (s *SimpleAdapter) View(pos, focus int) string {
-	item := s.Items[pos]
-
-	var renderTitle, renderDesc func(string) string
-	if item.Selectable {
-		if focus == pos {
-			// focused
-			renderTitle, renderDesc = selectedTitle.Render, selectedDesc.Render
-		} else if focus == FocusDisabled {
-			// disabled
-			renderTitle, renderDesc = dimmedTitle.Render, dimmedDesc.Render
-		} else {
-			// blurred
-			renderTitle, renderDesc = normalTitle.Render, normalDesc.Render
-		}
-	} else {
-		if focus == pos {
-			// focused
-			renderTitle, renderDesc = selectedDimmedTitle.Render, selectedDimmedDesc.Render
-		} else {
-			// blurred, disabled
-			renderTitle, renderDesc = dimmedTitle.Render, dimmedDesc.Render
+	var match *fuzzy.Match
+	if s.filterResult != nil {
+		match = &s.filterResult[pos]
+		pos = match.Index
+		if focus >= 0 {
+			focus = s.filterResult[focus].Index
 		}
 	}
 
-	return renderTitle(item.Title) + "\n" + renderDesc(item.Desc)
+	item := s.items[pos]
+
+	var renderTitle, renderDesc, renderBorder, renderFilterMatch func(string) string
+	if item.Selectable {
+		if focus == pos {
+			// focused
+			st := s.StyleNormal
+			renderTitle = st.titleSelected.Render
+			renderDesc = st.descSelected.Render
+			renderBorder = st.borderSelected.Render
+			renderFilterMatch = st.filterMatchSelected.Render
+		} else if focus == FocusDisabled {
+			// disabled
+			st := s.StyleDimmed
+			renderTitle = st.title.Render
+			renderDesc = st.desc.Render
+			renderBorder = border.Render
+			renderFilterMatch = st.filterMatch.Render
+		} else {
+			// blurred/viewmode
+			st := s.StyleNormal
+			renderTitle = st.title.Render
+			renderDesc = st.desc.Render
+			renderBorder = border.Render
+			renderFilterMatch = st.filterMatch.Render
+		}
+	} else {
+		st := s.StyleDimmed
+		if focus == pos {
+			// focused
+			renderTitle = st.titleSelected.Render
+			renderDesc = st.descSelected.Render
+			renderBorder = st.borderSelected.Render
+			renderFilterMatch = st.filterMatchSelected.Render
+		} else {
+			// blurred/disabled
+			renderTitle = st.title.Render
+			renderDesc = st.desc.Render
+			renderBorder = border.Render
+			renderFilterMatch = st.filterMatch.Render
+		}
+	}
+
+	var title = item.Title
+	if match != nil {
+		var highlightedTitle string
+	Outer:
+		for i, r := range title {
+			for _, i2 := range match.MatchedIndexes {
+				if i == i2 {
+					highlightedTitle += renderFilterMatch(string(r))
+					continue Outer
+				}
+			}
+			highlightedTitle += renderTitle(string(r))
+		}
+		title = highlightedTitle
+	}
+
+	return renderBorder(renderTitle(title) + "\n" + renderDesc(item.Desc))
 }
 
 func (s *SimpleAdapter) Select(pos int) tea.Cmd {
-	if onselect := s.OnSelect; s.Items[pos].Selectable && onselect != nil {
+	if s.filterResult != nil {
+		pos = s.filterResult[pos].Index
+	}
+
+	if onselect := s.OnSelect; s.items[pos].Selectable && onselect != nil {
 		return onselect(pos)
 	}
 	return nil
 }
 
 func (s *SimpleAdapter) Append(item ...SimpleItem) {
-	s.Items = append(s.Items, item...)
+	s.items = append(s.items, item...)
 }
 
 func (s *SimpleAdapter) Insert(i int, item ...SimpleItem) {
-	s.Items = append(s.Items[:i+len(item)], s.Items[i:]...)
+	s.items = append(s.items[:i+len(item)], s.items[i:]...)
 	for i2 := 0; i2 < len(item); i2++ {
-		s.Items[i+i2] = item[i2]
+		s.items[i+i2] = item[i2]
 	}
 }
 
 func (s *SimpleAdapter) Remove(i int) {
-	s.Items = append(s.Items[:i], s.Items[i+1:]...)
+	s.items = append(s.items[:i], s.items[i+1:]...)
+}
+
+func (s *SimpleAdapter) Filter(pattern string) {
+	s.lastFilterPattern = pattern
+	if len(pattern) > 0 {
+		s.filterResult = fuzzy.FindFrom(pattern, s.items)
+		if s.filterResult == nil {
+			s.filterResult = make([]fuzzy.Match, 0)
+		}
+	} else {
+		s.filterResult = nil
+	}
+}
+
+func (s *SimpleAdapter) ItemAt(pos int) SimpleItem {
+	return s.items[pos]
+}
+
+func (s *SimpleAdapter) SetItemAt(pos int, item SimpleItem) {
+	s.items[pos] = item
+	if s.filterResult != nil {
+		s.Filter(s.lastFilterPattern)
+	}
+}
+
+func (s *SimpleAdapter) SetItems(items SimpleItemList) {
+	s.items = items
+	if s.filterResult != nil {
+		s.Filter(s.lastFilterPattern)
+	}
 }
