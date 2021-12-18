@@ -18,8 +18,14 @@ func (m model) View() string {
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	if key, ok := msg.(tea.KeyMsg); ok && key.String() == "q" || key.String() == "esc" || key.String() == "ctrl+c" {
-		return m, tea.Quit
+	if key, ok := msg.(tea.KeyMsg); ok {
+		switch key.String() {
+		case "q", "esc", "ctrl+c":
+			return m, tea.Quit
+		case "enter":
+			adapter := m.list.Adapter.(CustomAdapter)
+			return m, adapter[m.list.ItemFocus()].OnSelect
+		}
 	}
 	var cmd tea.Cmd
 	m.list, cmd = m.list.Update(msg)

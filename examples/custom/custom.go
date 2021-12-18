@@ -82,7 +82,3 @@ func (c CustomAdapter) View(pos, focus int) string {
 	return fmt.Sprintf(style(format), topRight, item.ProfilePic,
 		item.Name, btmRight, normalTextStyle(item.Status.Text))
 }
-
-func (c CustomAdapter) Select(pos int) tea.Cmd {
-	return c[pos].OnSelect
-}

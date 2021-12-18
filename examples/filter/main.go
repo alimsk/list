@@ -38,6 +38,13 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				m.filterPattern = m.filterPattern[:len(m.filterPattern)-1]
 				m.list.Adapter.(*list.SimpleAdapter).Filter(m.filterPattern)
 			}
+		case "enter":
+			adapter := m.list.Adapter.(*list.SimpleAdapter)
+			item := adapter.FilteredItemAt(m.list.ItemFocus())
+			if !item.Disabled {
+				m.exitMessage = fmt.Sprintln("You selected", item.Title)
+				return m, tea.Quit
+			}
 		default:
 			if len(msg.Runes) > 0 {
 				if r := msg.Runes[0]; unicode.IsLetter(r) || unicode.IsDigit(r) || r == ' ' {
@@ -46,9 +53,6 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				}
 			}
 		}
-	case SelectMsg:
-		m.exitMessage = fmt.Sprintln("You selected", m.list.Adapter.(*list.SimpleAdapter).ItemAt(int(msg)).Title)
-		return m, tea.Quit
 	}
 
 	var cmd tea.Cmd
@@ -57,30 +61,21 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 }
 
 var random = list.SimpleItemList{
-	// Title, Desc, Selectable
-	{"Unselectable", "Pressing enter will do nothing", false},
-	{"Pocky", "Expesive", true},
-	{"Ginger", "Exquisite", true},
-	{"Plantains", "Questionable", true},
-	{"Honey Dew", "Delectable", true},
-	{"Pineapple", "Kind of spicy", true},
-	{"Snow Peas", "Bold flavour", true},
-	{"Party Gherkin", "My favorite", true},
-	{"Bananas", "Looks fresh", true},
-}
-
-type SelectMsg int
-
-func onSelect(pos int) tea.Cmd {
-	return func() tea.Msg {
-		return SelectMsg(pos)
-	}
+	// Title, Desc, Disabled
+	{"Disabled", "Pressing enter will do nothing", true},
+	{"Pocky", "Expesive", false},
+	{"Ginger", "Exquisite", false},
+	{"Plantains", "Questionable", false},
+	{"Honey Dew", "Delectable", false},
+	{"Pineapple", "Kind of spicy", false},
+	{"Snow Peas", "Bold flavour", false},
+	{"Party Gherkin", "My favorite", false},
+	{"Bananas", "Looks fresh", false},
 }
 
 // generate random items
 func RandomItems(n int) *list.SimpleAdapter {
 	a := list.NewSimpleAdapter(make(list.SimpleItemList, n))
-	a.OnSelect = onSelect
 	for i := 0; i < n; i++ {
 		a.SetItemAt(i, random[rand.Intn(len(random))])
 	}

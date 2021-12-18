@@ -117,12 +117,6 @@ func (m Model) Update(msg tea.Msg) (Model, tea.Cmd) {
 			} else {
 				m.updateFocus(+1)
 			}
-		case "enter":
-			if m.Adapter.Len() > 0 && !m.ViewMode {
-				m.adjustView()
-				cmd := m.Adapter.Select(m.focus)
-				return m, cmd
-			}
 		case "home":
 			if m.ViewMode {
 				m.SetViewPosition(0)

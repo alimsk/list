@@ -1,13 +1,12 @@
 package list
 
 import (
-	tea "github.com/charmbracelet/bubbletea"
 	"github.com/sahilm/fuzzy"
 )
 
 type SimpleItem struct {
 	Title, Desc string
-	Selectable  bool
+	Disabled    bool
 }
 
 type SimpleItemList []SimpleItem
@@ -28,8 +27,6 @@ type SimpleAdapter struct {
 	lastFilterPattern string
 
 	StyleNormal, StyleDimmed *SimpleAdapterStyle
-
-	OnSelect func(pos int) tea.Cmd
 }
 
 func NewSimpleAdapter(items SimpleItemList) *SimpleAdapter {
@@ -68,7 +65,7 @@ func (s *SimpleAdapter) View(pos, focus int) string {
 	item := s.items[pos]
 
 	var renderTitle, renderDesc, renderBorder, renderFilterMatch func(string) string
-	if item.Selectable {
+	if !item.Disabled {
 		if focus == pos {
 			// focused
 			st := s.StyleNormal
@@ -127,17 +124,6 @@ func (s *SimpleAdapter) View(pos, focus int) string {
 	return renderBorder(renderTitle(title) + "\n" + renderDesc(item.Desc))
 }
 
-func (s *SimpleAdapter) Select(pos int) tea.Cmd {
-	if s.filterResult != nil {
-		pos = s.filterResult[pos].Index
-	}
-
-	if onselect := s.OnSelect; s.items[pos].Selectable && onselect != nil {
-		return onselect(pos)
-	}
-	return nil
-}
-
 func (s *SimpleAdapter) Append(item ...SimpleItem) {
 	s.items = append(s.items, item...)
 }
@@ -163,6 +149,24 @@ func (s *SimpleAdapter) Filter(pattern string) {
 	} else {
 		s.filterResult = nil
 	}
+}
+
+func (s *SimpleAdapter) OriginalItemLen() int {
+	return len(s.items)
+}
+
+func (s *SimpleAdapter) FilteredIndex(pos int) int {
+	if s.filterResult == nil {
+		return pos
+	}
+	return s.filterResult[pos].Index
+}
+
+func (s *SimpleAdapter) FilteredItemAt(pos int) SimpleItem {
+	if s.filterResult == nil {
+		return s.items[pos]
+	}
+	return s.items[s.filterResult[pos].Index]
 }
 
 func (s *SimpleAdapter) ItemAt(pos int) SimpleItem {
