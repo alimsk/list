@@ -126,6 +126,9 @@ func (s *SimpleAdapter) View(pos, focus int) string {
 
 func (s *SimpleAdapter) Append(item ...SimpleItem) {
 	s.items = append(s.items, item...)
+	if s.filterResult != nil {
+		s.Filter(s.lastFilterPattern)
+	}
 }
 
 func (s *SimpleAdapter) Insert(i int, item ...SimpleItem) {
@@ -133,10 +136,16 @@ func (s *SimpleAdapter) Insert(i int, item ...SimpleItem) {
 	for i2 := 0; i2 < len(item); i2++ {
 		s.items[i+i2] = item[i2]
 	}
+	if s.filterResult != nil {
+		s.Filter(s.lastFilterPattern)
+	}
 }
 
 func (s *SimpleAdapter) Remove(i int) {
 	s.items = append(s.items[:i], s.items[i+1:]...)
+	if s.filterResult != nil {
+		s.Filter(s.lastFilterPattern)
+	}
 }
 
 func (s *SimpleAdapter) Filter(pattern string) {
